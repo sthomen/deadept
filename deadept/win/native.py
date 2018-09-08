@@ -5,6 +5,7 @@
 # http://i-u2665-cabbages.blogspot.com/2009/02/circumventing-adobe-adept-drm-for-epub.html
 
 import ctypes
+import ctypes.wintypes
 
 MAX_PATH=256
 USERNAME_MAX=32
@@ -34,7 +35,10 @@ def GetUserName():
 # kernel32.dll
 ########################################################################
 
-_kernel32=ctypes.windll.kernel32
+
+# Alledgely ctypes.windll.kernel32 is broken on 64-bit python
+#_kernel32 = ctypes.CDLL("kernel32.dll")
+_kernel32 = ctypes.windll.kernel32
 
 _kernel32.GetSystemDirectoryW.argtypes = [
 	ctypes.c_wchar_p,
@@ -74,6 +78,35 @@ def GetVolumeSerialNumber(path=None):
 		None, None, None, 0)
 
 	return vsn.value
+
+MEM_COMMIT = 0x1000
+MEM_RESERVE = 0x2000
+MEM_RELEASE = 0x8000
+
+PAGE_RWX = 0x40
+
+_kernel32.VirtualAlloc.argtypes = [
+	ctypes.wintypes.LPVOID,
+	ctypes.c_size_t,
+	ctypes.wintypes.DWORD,
+	ctypes.wintypes.DWORD
+]
+
+_kernel32.VirtualAlloc.restype = ctypes.wintypes.LPVOID
+
+def VirtualAlloc(addr, size, alloctype=(MEM_RESERVE | MEM_COMMIT), protect=PAGE_RWX):
+	return _kernel32.VirtualAlloc(addr, size, alloctype, protect)
+
+_kernel32.VirtualFree.argtypes = [
+	ctypes.wintypes.LPVOID,
+	ctypes.c_size_t,
+	ctypes.wintypes.DWORD
+]
+
+_kernel32.VirtualFree.restype = ctypes.wintypes.BOOL
+
+def VirtualFree(addr, size=0, freetype=MEM_RELEASE):
+	return _kernel32.VirtualFree(addr, size, freetype)
 
 ########################################################################
 # crypt32.dll
