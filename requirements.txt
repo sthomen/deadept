@@ -1,1 +1,2 @@
-pycryptodome
+pycryptodome>=3.6.6
+WMI>=1.4.9; sys_platform == 'win32'

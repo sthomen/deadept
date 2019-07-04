@@ -1,6 +1,9 @@
+import struct
+from base64 import b64decode
+
 from Crypto.Cipher import AES
 from Crypto.Util import Padding
-import struct
+import wmi
 
 from .registry import Registry
 from .native import GetUserName, GetVolumeSerialNumber, CryptUnprotectData
@@ -12,6 +15,7 @@ class Windows(Platform):
 	REG_PATH_ACTIVATION='Software\Adobe\Adept\Activation'
 	REG_KEY_DEVICE='key'
 	REG_KEY_ACTIVATION='privateLicenseKey'
+	REG_SUBKEY_ACTIVATION='value'
 
 	def getDeviceKey(self):
 		# this should be the encrypted key
@@ -20,20 +24,21 @@ class Windows(Platform):
 		if not data:
 			raise PlatformException('Device key not found')
 
-		# TODO --- Figure out this bit here. What should cpuid0 and cpuid1 be?
+		client = wmi.WMI()
+		processor = client.Win32_Processor()[0]
 
-		cpuid0 = b"foobar"
-		cpuid1 = b"123456"
+		signature = struct.pack('>I', int(processor.ProcessorId[8:16], 16))[1:]
 
-		vendor = cpuid0
-		signature = struct.pack('>I', int(cpuid1[1:]))
-
-		# TODO ---
+		vendor = bytes(processor.Manufacturer, 'ascii')
 
 		serial = GetVolumeSerialNumber()
 		user = GetUserName().encode()
 
+		#print(f"serial={repr(serial)}\nvendor={repr(vendor)}\nsignature={repr(signature)}\nuser={repr(user)}")
+
 		key=struct.pack('>I12s3s13s', serial, vendor, signature, user)
+
+		#print(f'combinedkey={repr(key)}');
 		
 		return CryptUnprotectData(data, key)
 
@@ -46,6 +51,8 @@ class Windows(Platform):
 		if not plk:
 			raise PlatformException('User (activation) key not found')
 
-		key = AES.new(device_key, AES.MODE_CBC).decrypt(plk.decode('base64'))
+		value = Registry.getValue(Windows.REG_SUBKEY_ACTIVATION, None, plk)
+
+		key = AES.new(device_key, AES.MODE_CBC).decrypt(b64decode(value))
 
 		return key

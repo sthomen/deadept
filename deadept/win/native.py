@@ -129,6 +129,7 @@ _crypt32.CryptUnprotectData.argtypes = [
 	ctypes.c_uint,
 	ctypes.POINTER(DATA_BLOB)
 ]
+
 _crypt32.CryptUnprotectData.restype = ctypes.c_uint
 
 def CryptUnprotectData(data, key):
@@ -143,6 +144,9 @@ def CryptUnprotectData(data, key):
 	if not _crypt32.CryptUnprotectData(ctypes.byref(indata), None,
 		ctypes.byref(inkey), None, None, 0, ctypes.byref(outdata)):
 
-		return None
+		raise NativeException('Failed to decrypt data using CryptUnprotectData')
 
 	return ctypes.string_at(outdata.pbData, outdata.cbData)
+
+class NativeException(Exception):
+	pass

@@ -10,8 +10,6 @@
 - Decrypt key
 - Decrypt books
 
-
-
 # Per-user key
 
 HKEY_CURRENT_USER\Software\Adobe\Adept\Device
@@ -26,12 +24,12 @@ is a packed struct with four values.
 
 is the number the cpuid leaf?
 
-cpuid0 - ?
-cpuid1 - ?
+cpuid0 - 'GenuineIntel' or whatever CPUID with rax set to 0x0 returns
+cpuid1 - CPU id number from CPUID with rax set to 0x1, _but without the first byte_
 
-serial - the serial number of the windows root drive(?)
-vendor - cpuid0 (cpu vendor id?)
-signature - packed bigendian unsigned int of some bits of cpuid1, struct.pack('>I', cpuid1[1:])
+serial - the serial number of the windows root drive
+vendor - cpuid0 as bytes
+signature - packed bigendian unsigned int of some bits of cpuid1, struct.pack('>I', cpuid1)[1:]
 user - Windows user name (string)
 
 these values are packed: struct.pack('>I12s3s13s', serial, vendor, signature, user)
@@ -49,5 +47,6 @@ The userkey is base64 encoded, and then AES CBC encrypted
         userkey = AES.new(keykey, AES.MODE_CBC).decrypt(userkey)
         userkey = userkey[26:-ord(userkey[-1])]
 
-dafuq..
+### TODO
 
+- write this up coherently
