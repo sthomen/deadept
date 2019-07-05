@@ -1,4 +1,3 @@
-import platform
 import io
 from zipfile import ZipFile
 from shutil import copyfile
@@ -10,25 +9,17 @@ from Crypto.Cipher import AES, PKCS1_v1_5
 from deadept.book import EncryptionIndex, LicenseToken
 
 class DeAdept(object):
-	def __init__(self, fn):
-		# XXX
-		# Import platform-specific key extractors, this masquerades as the
-		# Platform class (They all share the same base class). The alternative
-		# would be to use getattr(), and I don't see the difference here.
-		# I'm sure there's a proper OO way of doing this but for now this can
-		# stand.
+	def __init__(self, fn, platform=None):
+		if not platform:
+			platform = 'Windows'
 
-		if platform.system() == 'Windows':
-			from .win import Windows as Platform
+		if platform == 'Windows':
+			from .win import Windows
+			self.platform=Windows()
 		else:
-			raise DeAdeptException('Unsupported platform: {}'.format(platform.system()))
-
-		self.platform=Platform()
+			raise DeAdeptException('Unsupported platform: {}'.format(platform))
 
 		self.fn = fn
-
-	def getDeviceKey(self):
-		return self.platform.getDeviceKey()
 
 	def getKey(self):
 		return self.platform.getKey()
