@@ -24,12 +24,13 @@ class DeAdept(object):
 		return self.platform.getKey()
 
 	def decrypt(self, outfn=None):
-		outbytes = io.BytesIO()
-
 		if not outfn:
 			outfn = self.fn
 
-		with ZipFile(self.fn, 'r') as infile, ZipFile(outbytes, 'w') as outfile:
+		outbytes = io.BytesIO()
+		outfile = ZipFile(outbytes, 'w')
+
+		with ZipFile(self.fn, 'r') as infile:
 			index = None
 			rights = None
 
@@ -60,12 +61,12 @@ class DeAdept(object):
 					# there's a suffix, but it apparently isn't necessary to remove it.
 					data = decompress(compressed[16:], wbits=-15)
 
-					# Is this necessary?
-					zi.file_size = len(data)
+				zi.file_size = len(data)
 
 				with outfile.open(zi, 'w') as f:
 					f.write(data)
 
+			outfile.close()
 			outbytes.seek(io.SEEK_SET)
 
 			with open(outfn, 'bw') as f:
