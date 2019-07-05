@@ -31,16 +31,17 @@ class DeAdept(object):
 		outfile = ZipFile(outbytes, 'w')
 
 		with ZipFile(self.fn, 'r') as infile:
-			index = None
-			rights = None
+			try:
+				with infile.open('META-INF/encryption.xml') as data:
+					index = EncryptionIndex(data.read())
 
-			with infile.open('META-INF/encryption.xml') as data:
-				index = EncryptionIndex(data.read())
+				with infile.open('META-INF/rights.xml') as data:
+					rights = LicenseToken(data.read())
+			except KeyError:
+				index = None
+				rights = None
 
-			with infile.open('META-INF/rights.xml') as data:
-				rights = LicenseToken(data.read())
-
-			if not rights and index:
+			if not (rights and index):
 				raise DeAdeptException("Couldn't load the encryption index and license token, does this epub really use the Adept DRM?")
 
 			rsa_cipher = PKCS1_v1_5.new(self.getKey())
