@@ -7,7 +7,8 @@ setup(
 
 	entry_points = {
 		'console_scripts': [
-			'deadept = deadept.scripts.deadept:run'
+			'deadept = deadept.scripts.deadept:run',
+			'dumpkey = deadept.scripts.dumpkey:run'
 		]
 	},
 
