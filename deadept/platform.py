@@ -6,7 +6,8 @@ class PlatformSelector(object):
 	DEFAULT = 'windows'
 
 	PLATFORMS = {
-		'windows': 'deadept.win.windows.Windows'
+		'windows': 'deadept.win.windows.Windows',
+		'keyfile': 'deadept.keyfile.keyfile.Keyfile'
 	}
 
 	def default(self):
