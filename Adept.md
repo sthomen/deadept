@@ -1,52 +1,88 @@
-### ADEPT Information
+# ADEPT Information
 
-- One key per book
-- Book keys encrypted by a per user key (RSA with PKCS#1 v1.5 padding)
-- Books are encrypted with AES CBC with random IV
+## Books
 
-## Goals
+Books "protected" by ADEPT DRM contain a few extra things from a regular EPUB
+file; two files;
 
-- Retrieve per-user key
-- Decrypt key
-- Decrypt books
+ - **META-INF/encryption.xml** This file contains an index of encrypted files
+   in the EPUB and what cipher is used for each file (as far as I know, there
+   can only be one cipher, given that there is only one key for it)
 
-# Per-user key
+ - **META-INF/rights.xml** Contains a bunch of information, but the important
+   tag is encryptedKey. The text of this tag contains the encryption key for
+   the book. It is first encrypted with the user's public RSA key (usually
+   something they don't give you) and then BASE64-encoded.
 
-HKEY_CURRENT_USER\Software\Adobe\Adept\Device
+For the book, this is it. Decode the key and decrypt everything, remove the
+encryption.xml and rights.xml files and it's no longer "protected".
 
-the value *key* holds the *device key*, but it's encrypted to the current
-windows user using crypt32.dll, and can be decrypted using CryptUnprotectData
-function.
+## User key
 
-The parameters given in ineptkey by iheartcabbage to it are (indata, None,
-entropy, None, None, 0, outdata) where indata is the *device key*, and entropy
-is a packed struct with four values.
+The user key mentioned above is one key of an RSA key pair, and to decrypt the
+actual key for the book, you first must find the private key.
 
-is the number the cpuid leaf?
+### ACSM
 
-cpuid0 - 'GenuineIntel' or whatever CPUID with rax set to 0x0 returns
-cpuid1 - CPU id number from CPUID with rax set to 0x1, _but without the first byte_
+When ADEPT books are "downloaded" what you actually get is an ACSM file which
+is a small xml document that contains some information that software like
+_Adobe Digital Editions_ can use to download the actual book, encrypted with
+the key it then makes for you. This is what enables the device locking, since
+the EPUB you get has its actual encryption key encrypted using the RSA public
+key that the software generates. Only the holder of the private key can unlock
+the book for reading.
 
-serial - the serial number of the windows root drive
-vendor - cpuid0 as bytes
-signature - packed bigendian unsigned int of some bits of cpuid1, struct.pack('>I', cpuid1)[1:]
-user - Windows user name (string)
+The software here could also be an e-reader device, and then the EPUB files on
+that device can be locked to it since only it knows the RSA private key. 
 
-these values are packed: struct.pack('>I12s3s13s', serial, vendor, signature, user)
+## Adobe Digital Editions
 
-HKEY_CURRENT_USER\Software\Adobe\Adept\Activation
+_Adobe Digital Editions_ is a piece of software for Windows and Mac that can 
+act as a device for ADEPT locked EPUB files. It knows how to use ACSM to
+download books and and decode the DRM and display them.
 
-contains many keys and values, the key with the default value
-'privateLicenseKey' holds the *user key* that can decrypt the *device key*.
+I learned about how to do this from [I &#x2665; cabbage's blog][iheartcabbages]
+entry on it and the [quite frankly disgustingly ugly ineptkey script][ineptkey]
+he'd written, but it does show how ADE encodes the private RSA key on windows
+and how to retrieve it from the windows registry.
 
-The userkey is base64 encoded, and then AES CBC encrypted
+### "activation" key
 
-(keykey is the decrypted device key)
+ADE on windows calls the RSA key that can reveal the book-encrypting key an
+"activation" key, and it is stored in the registry under
+HEKY\_CURRENT\_USER\\Software\\Adobe\\Adept\\Activation. There are lots of
+registry keys here, but the one that holds the "activation" key is called
+*privateLicenseKey*, look for it and you'll find a BASE64 encoded string
+that is encrypted with AES.
 
-        userkey = userkey.decode('base64')
-        userkey = AES.new(keykey, AES.MODE_CBC).decrypt(userkey)
-        userkey = userkey[26:-ord(userkey[-1])]
+### "device" key
 
-### TODO
+So the activation key is also encrypted, but fortunately the key to this
+encryption&mdash;called the "device" key&mdash;is also stored in the registry
+under HKEY\_CURRENT\_USER\\Software\\Adobe\\Adept\\Device with the imaginative
+name "key".
 
-- write this up coherently
+### key key key... key...
+
+Unfortunately the "device" key is also encrypted, using the windows native
+"CryptProtectData" function, and the key to THIS key is gathered from the
+running system.
+
+There are four components to this key:
+
+ - the boot volume serial number
+ - the processor manufacturer
+ - the processor signature
+ - the name of the current user
+
+These are then combined (in that order) as:
+
+ - a bigendian unsigned integer
+ - a 12 byte string
+ - a 3 byte string
+ - a 13 byte string
+
+There, that wasn't unnecessarily complicated, was it?
+
+[ineptkey]: https://pastebin.com/fpwuPLCC
+[iheartcabbages]: http://i-u2665-cabbages.blogspot.com/2009/02/circumventing-adobe-adept-drm-for-epub.html
