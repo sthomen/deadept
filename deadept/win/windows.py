@@ -9,7 +9,7 @@ import wmi
 from .registry import Registry
 from .native import GetUserName, GetVolumeSerialNumber, CryptUnprotectData
 
-from ..platform import Platform
+from ..platform import Platform, PlatformException
 
 class Windows(Platform):
 	REG_PATH_DEVICE='Software\Adobe\Adept\Device'
@@ -20,10 +20,10 @@ class Windows(Platform):
 
 	def getDeviceKey(self):
 		# this should be the encrypted key
-		data=Registry.getValue(Windows.REG_KEY_DEVICE, Windows.REG_PATH_DEVICE)
-
-		if not data:
-			raise PlatformException('Device key not found')
+		try:
+			data=Registry.getValue(Windows.REG_KEY_DEVICE, Windows.REG_PATH_DEVICE)
+		except:
+			raise PlatformException("Couldn't load the device key from windows registry")
 
 		client = wmi.WMI()
 		processor = client.Win32_Processor()[0]
@@ -48,12 +48,11 @@ class Windows(Platform):
 	def getKey(self):
 		device_key = self.getDeviceKey()
 
-		plk = Registry.recursiveFindKeyWithValue(Windows.REG_KEY_ACTIVATION, Windows.REG_PATH_ACTIVATION)
-
-		if not plk:
-			raise PlatformException('User (activation) key not found')
-
-		value = Registry.getValue(Windows.REG_SUBKEY_ACTIVATION, None, plk)
+		try:
+			plk = Registry.recursiveFindKeyWithValue(Windows.REG_KEY_ACTIVATION, Windows.REG_PATH_ACTIVATION)
+			value = Registry.getValue(Windows.REG_SUBKEY_ACTIVATION, None, plk)
+		except:
+			raise PlatformException("Couldn't find the activation key in the windows registry")
 
 		key = AES.new(device_key, AES.MODE_CBC).decrypt(b64decode(value))
 
