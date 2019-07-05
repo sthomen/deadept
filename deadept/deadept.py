@@ -7,17 +7,16 @@ from zlib import decompress
 from Crypto.Cipher import AES, PKCS1_v1_5
 
 from deadept.book import EncryptionIndex, LicenseToken
+from deadept.platform import PlatformSelector
 
 class DeAdept(object):
 	def __init__(self, fn, platform=None):
-		if not platform:
-			platform = 'Windows'
+		selector = PlatformSelector()
 
-		if platform == 'Windows':
-			from .win import Windows
-			self.platform=Windows()
-		else:
-			raise DeAdeptException('Unsupported platform: {}'.format(platform))
+		if not platform:
+			platform = selector.default()
+		
+		self.platform = selector.load(platform)
 
 		self.fn = fn
 
