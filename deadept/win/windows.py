@@ -35,15 +35,9 @@ class Windows(Platform):
 		serial = GetVolumeSerialNumber()
 		user = GetUserName().encode()
 
-		#print(f"serial={repr(serial)}\nvendor={repr(vendor)}\nsignature={repr(signature)}\nuser={repr(user)}")
-
 		key=struct.pack('>I12s3s13s', serial, vendor, signature, user)
 
-		#print(f'combinedkey={repr(key)}');
-
-		self.device_key = CryptUnprotectData(data, key)
-
-		return self.device_key
+		return CryptUnprotectData(data, key)
 
 	def getKey(self):
 		device_key = self.getDeviceKey()
@@ -61,6 +55,4 @@ class Windows(Platform):
 		# elements are already integers.
 		key = key[26:-key[-1]]
 
-		self.key = RSA.import_key(key)
-
-		return self.key
+		return RSA.import_key(key)
