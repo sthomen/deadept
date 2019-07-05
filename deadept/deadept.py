@@ -1,5 +1,6 @@
 import platform
 import io
+import re
 from zipfile import ZipFile
 from shutil import copyfile
 from base64 import b64decode
@@ -7,7 +8,7 @@ from zlib import decompress
 
 from Crypto.Cipher import AES, PKCS1_v1_5
 
-from deadept.book import EncryptionIndex, LicenseToken
+from deadept.book import EncryptionIndex, LicenseToken, Container
 
 class DeAdept(object):
 	def __init__(self, fn):
@@ -70,8 +71,12 @@ class DeAdept(object):
 					# there's a suffix, but it apparently isn't necessary to remove it.
 					data = decompress(compressed[16:], wbits=-15)
 
-					# Is this necessary?
-					zi.file_size = len(data)
+				elif zi.filename == 'META-INF/container.xml':
+					data = bytes(Container(data).changeToFree())	# This replaces OPS/ with OEBPS/ in the container
+
+				# Change any file with OPS in the path to OEBPS, this makes these books work on my kobo
+				zi.filename = re.sub(r'^OPS/', 'OEBPS/', zi.filename)
+				zi.file_size = len(data)
 
 				with outfile.open(zi, 'w') as f:
 					f.write(data)

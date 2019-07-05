@@ -75,5 +75,35 @@ class LicenseToken(Bunch):
 		for child in token:
 			self[re.sub(r'^{[^}]+}', '', child.tag)] = child.text
 
+class Container(object):
+	def __init__(self, data):
+		self.data = data
+
+	def changeToFree(self):
+		root = ET.fromstring(self.data)
+
+		ns = None
+		match = re.match(r'{([^}]+)}.+', root.tag)
+
+		if match:
+			ns = match.group(1)
+
+		rootfiles = root.findall(f'{{{ns}}}rootfiles/{{{ns}}}rootfile')
+
+		for rootfile in rootfiles:
+			if 'full-path' in rootfile.attrib.keys():
+				rootfile.attrib['full-path'] = re.sub(r'^OPS/', 'OEBPS/', rootfile.attrib['full-path'])
+
+		ET.register_namespace('', ns)
+		self.data = ET.tostring(root)
+
+		return self
+
+	def __str__(self):
+		return str(self.data, 'ASCII')
+		
+	def __bytes__(self):
+		return self.data
+
 class BookException(Exception):
 	pass
