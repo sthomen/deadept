@@ -2,7 +2,6 @@
 
 from deadept import DeAdept
 
-da=DeAdept()
+#DeAdept(None).getKey()
 
-#print(da.getDeviceKey())
-print(da.getKey())
+DeAdept('The Martian.epub').decrypt('test.epub')

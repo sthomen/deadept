@@ -2,6 +2,7 @@ import struct
 from base64 import b64decode
 
 from Crypto.Cipher import AES
+from Crypto.PublicKey import RSA
 from Crypto.Util import Padding
 import wmi
 
@@ -39,9 +40,10 @@ class Windows(Platform):
 		key=struct.pack('>I12s3s13s', serial, vendor, signature, user)
 
 		#print(f'combinedkey={repr(key)}');
-		
-		return CryptUnprotectData(data, key)
 
+		self.device_key = CryptUnprotectData(data, key)
+
+		return self.device_key
 
 	def getKey(self):
 		device_key = self.getDeviceKey()
@@ -55,4 +57,11 @@ class Windows(Platform):
 
 		key = AES.new(device_key, AES.MODE_CBC).decrypt(b64decode(value))
 
-		return key
+		# as per ineptkey.py userkey = userkey[26:-ord(userkey[-1])]
+		# This should be equivalent because we're using bytes here and the individual
+		# elements are already integers.
+		key = key[26:-key[-1]]
+
+		self.key = RSA.import_key(key)
+
+		return self.key
