@@ -12,6 +12,11 @@ setup(
 		]
 	},
 
+	install_requires = [
+		"pycryptodome >= 3.6.6",
+		"WMI >= 1.4.9; sys_platform == 'win32'"
+	],
+
 	author = 'Staffan Thomen',
 	author_email = 'staffan@thomen.fi',
 	description = ('Program to remove Adobe Adept DRM from epub files'),
