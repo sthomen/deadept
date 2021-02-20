@@ -26,6 +26,6 @@ setup(
 	license = 'BSD',
 
 	classifiers = [
-		'Development Status :: 4 - Beta',
+		'Development Status :: 5 - Production/Stable',
 		'Programming Languge :: Python :: 3'
 	])
